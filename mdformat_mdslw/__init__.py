@@ -1,6 +1,6 @@
 """An mdformat plugin for mdslw-style sentence wrapping."""
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 __plugin_name__ = "mdslw"
 
