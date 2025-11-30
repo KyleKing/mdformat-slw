@@ -7,8 +7,8 @@ import pytest
 from mdformat_slw._sentence_wrapper import (
     DEFAULT_SENTENCE_MARKERS,
     ConfigurationError,
-    get_slw_wrap_width,
     get_sentence_markers,
+    get_slw_wrap_width,
 )
 
 

@@ -2,7 +2,7 @@
 
 [![Build Status][ci-badge]][ci-link] [![PyPI version][pypi-badge]][pypi-link]
 
-An [mdformat](https://github.com/executablebooks/mdformat) plugin for [slw](https://github.com/razziel89/slw)-style sentence wrapping.
+An [mdformat](https://github.com/executablebooks/mdformat) plugin for semantic line wrapping (slw).
 
 This plugin wraps markdown text by inserting line breaks after sentence-ending punctuation, making diffs cleaner and easier to review.
 
@@ -214,6 +214,20 @@ When one of the limited number of characters (`.!?:` by default) which serve as 
 1. Collapse all consecutive whitespace into a single space. While doing so, preserve both non-breaking spaces and linebreaks that are preceded by non-breaking spaces
 1. Before line wrapping, replace all spaces in link texts by non-breaking spaces (and similar inline content that can't be wrapped)
 1. Wrap lines that are longer than the maximum line width, if set, (80 characters by default) without splitting words or splitting at non-breaking spaces while also keeping indents in tact.
+
+## Acknowledgments
+
+This plugin is inspired by and named after [mdslw](https://github.com/razziel89/mdslw) by [@razziel89](https://github.com/razziel89). The original `mdslw` is an excellent standalone tool for semantic line wrapping of markdown files.
+
+**Why create mdformat-slw?**
+
+The [mdformat](https://github.com/executablebooks/mdformat) ecosystem uses a plugin architecture where formatters must integrate with mdformat's AST-based processing pipeline. While `mdslw` works great as a standalone tool, it cannot be used as an mdformat plugin directly. This plugin reimplements semantic line wrapping concepts to work natively within mdformat, enabling:
+
+- Seamless integration with other mdformat plugins
+- Consistent formatting when mdformat is your primary markdown formatter
+- Use in pre-commit hooks alongside mdformat's other capabilities
+
+The plugin is named `slw` (not `mdslw`) to clearly distinguish it from the original tool and avoid confusion, since the implementations differ.
 
 ## Contributing
 
