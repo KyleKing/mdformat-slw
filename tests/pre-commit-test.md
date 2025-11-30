@@ -121,7 +121,7 @@ This extraordinarily verbose and unnecessarily elongated sentence is
 specifically crafted to exceed the standard eighty-character line width
 limitation that many terminal emulators and text editors use as their default
 display width, thereby testing whether the plugin correctly implements its
-line-wrapping functionality when the `--max-line-width` parameter is configured.
+line-wrapping functionality when mdformat's `--wrap` parameter is configured.
 Following that monster of a sentence, here's a short one.
 Then another medium-length sentence to vary the rhythm.
 Finally, we end with a question:
@@ -155,26 +155,43 @@ Maybe!</span> The behavior might vary.
 ## Tables (If Supported)
 
 | Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
+| ------------------------ | -------- | -------- |
 | This cell has sentences.
-They might wrap.
-Or might not!
+| | |
+| They might wrap.
+| | |
+| Or might not!
+| | |
 | Another cell here.
-With multiple sentences?
-Yes indeed!
+| | |
+| With multiple sentences?
+| | |
+| Yes indeed!
+| | |
 | Final cell.
-Short sentence.
-Done!
-|
+| | |
+| Short sentence.
+| | |
+| Done!
+| | |
+| | | |
 | Row two continues.
-More test content.
-Wrapping behavior?
+| | |
+| More test content.
+| | |
+| Wrapping behavior?
+| | |
 | Testing continues here.
-Multiple sentences work.
-Great!
+| | |
+| Multiple sentences work.
+| | |
+| Great!
+| | |
 | Last cell here.
-All good!
-|
+| | |
+| All good!
+| | |
+| | | |
 
 ## Horizontal Rules and Breaks
 
@@ -202,7 +219,10 @@ Does the footnote marker interfere?
 It shouldn't:
 the wrapping should work correctly!
 
-\[^1\]:
+\[
+^1
+\]
+
 This is the footnote content.
 It also has multiple sentences.
 They should wrap properly too!

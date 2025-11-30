@@ -21,27 +21,31 @@ def add_cli_argument_group(group: argparse._ArgumentGroup) -> None:
 
     Configuration is stored in `mdit.options["mdformat"]["plugin"]["mdslw"]`
 
+    Note: When using --mdslw-wrap, consider disabling mdformat's line wrapping
+    with --wrap=keep to avoid conflicts between the two wrapping mechanisms.
+
     Args:
         group: Argument group to add options to
 
     """
     group.add_argument(
-        "--wrap-sentences",
+        "--no-wrap-sentences",
         action="store_const",
         const=True,
-        help="If specified, wrap text by inserting line breaks after sentences (mdslw-style)",
+        help="Disable mdslw sentence wrapping (enabled by default)",
     )
     group.add_argument(
-        "--sentence-markers",
+        "--mdslw-markers",
         type=str,
         default=".!?:",
-        help="Characters that mark sentence endings (default: .!?:)",
+        help="Characters that mark sentence endings for mdslw (default: .!?:)",
     )
     group.add_argument(
-        "--max-line-width",
+        "--mdslw-wrap",
         type=int,
-        default=80,
-        help="Maximum line width for wrapping (default: 80, 0 to disable)",
+        default=0,
+        help="Wrap lines at specified width (default: 0 = disabled). "
+        "Use with --wrap=keep to disable mdformat's wrapping.",
     )
 
 
@@ -73,7 +77,7 @@ RENDERERS: Mapping[str, Render] = {}
 # will run in series.
 #
 # Apply sentence wrapping to paragraphs and other text-containing nodes.
-# The postprocessor is only active when --wrap-sentences is enabled.
+# The postprocessor is active by default; use --no-wrap-sentences to disable.
 POSTPROCESSORS: Mapping[str, Postprocess] = {
     "paragraph": wrap_sentences,
 }

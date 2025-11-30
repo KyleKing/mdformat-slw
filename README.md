@@ -8,26 +8,36 @@ This plugin wraps markdown text by inserting line breaks after sentence-ending p
 
 ## Features
 
-- Wrap sentences at configurable punctuation marks (default: `.!?:`)
-- Optional maximum line width enforcement
+- **Automatic sentence wrapping** at configurable punctuation marks (default: `.!?:`)
+- **Enabled by default** - no flags needed to activate
+- Optional maximum line width enforcement with `--mdslw-wrap`
 - Preserves markdown formatting (bold, italic, links, etc.)
 - Handles edge cases: quoted text, parentheses, brackets
 
 ## `mdformat` Usage
 
-Add this package wherever you use `mdformat` and the plugin will be auto-recognized. No additional configuration necessary. See [additional information on `mdformat` plugins here](https://mdformat.readthedocs.io/en/stable/users/plugins.html)
+Add this package wherever you use `mdformat` and the plugin will be auto-recognized. Sentence wrapping is **enabled by default**. See [additional information on `mdformat` plugins here](https://mdformat.readthedocs.io/en/stable/users/plugins.html)
 
 ### CLI
 
 ```sh
-mdformat --wrap-sentences document.md
+# Sentence wrapping enabled by default
+mdformat document.md
+
+# With line width enforcement
+mdformat document.md --mdslw-wrap 80 --wrap=keep
+
+# Disable sentence wrapping
+mdformat document.md --no-wrap-sentences
 ```
 
 #### Options
 
-- `--wrap-sentences`: Enable sentence wrapping (required to activate the plugin)
-- `--sentence-markers TEXT`: Characters that mark sentence endings (default: `.!?:`)
-- `--max-line-width INTEGER`: Maximum line width for wrapping (default: 80, 0 to disable)
+- `--no-wrap-sentences`: Disable sentence wrapping (enabled by default)
+- `--mdslw-markers TEXT`: Characters that mark sentence endings (default: `.!?:`)
+- `--mdslw-wrap INTEGER`: Maximum line width for wrapping (default: 0 = disabled)
+
+> **Note:** When using `--mdslw-wrap`, consider adding `--wrap=keep` to disable mdformat's built-in line wrapping and avoid conflicts.
 
 ### Configuration File
 
@@ -35,9 +45,18 @@ Create a `.mdformat.toml` file in your project root:
 
 ```toml
 [plugin.mdslw]
-wrap_sentences = true
-sentence_markers = ".!?:"
-max_line_width = 80
+# Disable sentence wrapping (enabled by default)
+no_wrap_sentences = false
+
+# Customize sentence markers
+mdslw_markers = ".!?:"
+
+# Enable line width wrapping
+mdslw_wrap = 80
+
+# Recommended: disable mdformat's wrapping to avoid conflicts
+[mdformat]
+wrap = "keep"
 ```
 
 ### pre-commit / prek
@@ -63,7 +82,7 @@ Or with pipx:
 ```sh
 pipx install mdformat
 pipx inject mdformat mdformat-mdslw
-mdformat --wrap-sentences document.md
+mdformat document.md
 ```
 
 ### Python API
@@ -75,14 +94,28 @@ text = """
 This is a test. It has multiple sentences! Does it work?
 """
 
-# Enable sentence wrapping
-result = mdformat.text(text, extensions={"mdslw"}, options={"wrap_sentences": True})
+# Sentence wrapping enabled by default
+result = mdformat.text(text, extensions={"mdslw"})
 
 print(result)
 # Output:
 # This is a test.
 # It has multiple sentences!
 # Does it work?
+
+# With line width wrapping
+result = mdformat.text(
+    text,
+    extensions={"mdslw"},
+    options={"mdslw_wrap": 80}
+)
+
+# Disable sentence wrapping
+result = mdformat.text(
+    text,
+    extensions={"mdslw"},
+    options={"no_wrap_sentences": True}
+)
 ```
 
 ## Example
@@ -93,7 +126,16 @@ print(result)
 This is a long sentence. It contains multiple clauses! Does it work? Yes it does.
 ```
 
-**Output (with `--wrap-sentences`):**
+**Output (default behavior):**
+
+```markdown
+This is a long sentence.
+It contains multiple clauses!
+Does it work?
+Yes it does.
+```
+
+**Output (with `--mdslw-wrap 40`):**
 
 ```markdown
 This is a long sentence.

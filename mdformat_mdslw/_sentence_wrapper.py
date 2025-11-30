@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import functools
+import logging
 import re
 from typing import TYPE_CHECKING
 
 from ._helpers import get_conf
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -18,9 +21,6 @@ if TYPE_CHECKING:
 
 # Default configuration constants
 DEFAULT_SENTENCE_MARKERS = ".!?:"
-DEFAULT_MAX_LINE_WIDTH = 80
-MIN_LINE_WIDTH = 0
-MAX_LINE_WIDTH = 10000
 
 
 class ConfigurationError(ValueError):
@@ -42,21 +42,6 @@ def _validate_sentence_markers(markers: str) -> None:
         raise ConfigurationError(msg)
     if len(markers) > 50:  # noqa: PLR2004
         msg = f"sentence_markers too long (max 50 chars): {len(markers)}"
-        raise ConfigurationError(msg)
-
-
-def _validate_line_width(width: int) -> None:
-    """Validate maximum line width.
-
-    Args:
-        width: Maximum line width in characters
-
-    Raises (via _validate_sentence_markers):
-        ConfigurationError: If width is out of valid range
-
-    """
-    if width < MIN_LINE_WIDTH or width > MAX_LINE_WIDTH:
-        msg = f"max_line_width must be {MIN_LINE_WIDTH}-{MAX_LINE_WIDTH}, got {width}"
         raise ConfigurationError(msg)
 
 
@@ -85,14 +70,19 @@ def _compile_sentence_pattern(sentence_markers: str) -> re.Pattern[str]:
 def should_wrap_sentences(options: ContextOptions) -> bool:
     """Check if sentence wrapping is enabled via CLI or config.
 
+    Sentence wrapping is ENABLED by default. Use --no-wrap-sentences to disable.
+
     Args:
         options: Configuration options from mdformat context
 
     Returns:
-        True if sentence wrapping is enabled
+        True if sentence wrapping is enabled (default: True)
 
     """
-    return bool(get_conf(options, "wrap_sentences"))
+    no_wrap = get_conf(options, "no_wrap_sentences")
+    if no_wrap is not None:
+        return not bool(no_wrap)
+    return True  # Default: enabled
 
 
 def get_sentence_markers(options: ContextOptions) -> str:
@@ -108,29 +98,24 @@ def get_sentence_markers(options: ContextOptions) -> str:
         ConfigurationError: If markers are invalid
 
     """
-    markers = get_conf(options, "sentence_markers")
+    markers = get_conf(options, "mdslw_markers")
     result = str(markers) if markers is not None else DEFAULT_SENTENCE_MARKERS
     _validate_sentence_markers(result)
     return result
 
 
-def get_max_line_width(options: ContextOptions) -> int:
-    """Get maximum line width from config.
+def get_mdslw_wrap_width(options: ContextOptions) -> int:
+    """Get line wrap width from mdslw's --mdslw-wrap setting.
 
     Args:
         options: Configuration options from mdformat context
 
     Returns:
-        Maximum line width in characters (default: 80, 0 to disable)
-
-    Raises (via _validate_sentence_markers):
-        ConfigurationError: If width is out of valid range
+        Maximum line width in characters, or 0 to disable wrapping (default: 0)
 
     """
-    width = get_conf(options, "max_line_width")
-    result = int(width) if width is not None else DEFAULT_MAX_LINE_WIDTH
-    _validate_line_width(result)
-    return result
+    wrap_width = get_conf(options, "mdslw_wrap")
+    return int(wrap_width) if wrap_width is not None else 0
 
 
 def _wrap_long_line(line: str, max_width: int) -> list[str]:
@@ -182,7 +167,7 @@ def wrap_sentences(
 
     This is inspired by mdslw's sentence-wrapping behavior:
     - Insert line breaks after sentence-ending punctuation
-    - Optionally wrap long lines that exceed max_width
+    - Optionally wrap long lines using --mdslw-wrap setting
     - Preserve existing formatting for code blocks and special syntax
 
     Note: The _node parameter is required by mdformat's postprocessor
@@ -207,8 +192,18 @@ def wrap_sentences(
     if not text or not text.strip():
         return text
 
+    # Warn if mdformat's --wrap is set (potential conflict)
+    mdformat_wrap = context.options.get("mdformat", {}).get("wrap")
+    if mdformat_wrap is not None and mdformat_wrap not in {"keep", None}:
+        logger.warning(
+            "mdformat's --wrap is set to '%s'. "
+            "Consider using --wrap=keep to avoid conflicts with mdslw sentence wrapping. "
+            "Use --mdslw-wrap instead for line width control.",
+            mdformat_wrap,
+        )
+
     sentence_markers = get_sentence_markers(context.options)
-    max_width = get_max_line_width(context.options)
+    wrap_width = get_mdslw_wrap_width(context.options)
 
     # Get or compile cached regex pattern
     pattern = _compile_sentence_pattern(sentence_markers)
@@ -222,12 +217,12 @@ def wrap_sentences(
     # Apply sentence breaks
     wrapped = pattern.sub(_replace_with_newline, text)
 
-    # Optional: wrap long lines that exceed max_width
-    if max_width > 0:
+    # Optional: wrap long lines using --mdslw-wrap setting
+    if wrap_width > 0:
         lines = wrapped.split("\n")
         wrapped_lines = []
         for line in lines:
-            wrapped_lines.extend(_wrap_long_line(line, max_width))
+            wrapped_lines.extend(_wrap_long_line(line, wrap_width))
         wrapped = "\n".join(wrapped_lines)
 
     return wrapped

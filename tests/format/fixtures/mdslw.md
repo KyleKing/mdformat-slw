@@ -1,11 +1,4 @@
-sentence wrapping disabled (default)
-.
-This is a test. It has multiple sentences! Does it work?
-.
-This is a test. It has multiple sentences! Does it work?
-.
-
-sentence wrapping with basic text
+sentence wrapping with basic text (default behavior)
 .
 This is a test. It has multiple sentences! Does it work?
 .
@@ -13,7 +6,14 @@ This is a test.
 It has multiple sentences!
 Does it work?
 .
---wrap-sentences
+
+sentence wrapping disabled
+.
+This is a test. It has multiple sentences! Does it work?
+.
+This is a test. It has multiple sentences! Does it work?
+.
+--no-wrap-sentences
 
 multiple paragraphs
 .
@@ -27,7 +27,6 @@ Here is the second one.
 Second paragraph also has sentences.
 This one too!
 .
---wrap-sentences
 
 preserve formatting
 .
@@ -42,7 +41,7 @@ Some *markdown* text.
 - a list item
 - another item
 .
---wrap-sentences
+
 sentence with quoted text
 .
 He said "Hello there." She replied "How are you?"
@@ -50,7 +49,6 @@ He said "Hello there." She replied "How are you?"
 He said "Hello there."
 She replied "How are you?"
 .
---wrap-sentences
 
 sentence with parentheses
 .
@@ -59,7 +57,6 @@ This is a sentence (with a note). Another sentence follows!
 This is a sentence (with a note).
 Another sentence follows!
 .
---wrap-sentences
 
 sentence with brackets and braces
 .
@@ -68,7 +65,6 @@ See the reference [1]. Also check {section 2}!
 See the reference [1].
 Also check {section 2}!
 .
---wrap-sentences
 
 colon as sentence marker
 .
@@ -79,7 +75,6 @@ It works well!
 Another point:
 Very good.
 .
---wrap-sentences
 
 empty text
 .
@@ -87,7 +82,6 @@ empty text
 .
 
 .
---wrap-sentences
 
 single sentence no ending punctuation
 .
@@ -95,7 +89,6 @@ This is just one sentence
 .
 This is just one sentence
 .
---wrap-sentences
 
 multiple spaces between sentences
 .
@@ -105,7 +98,6 @@ First sentence.
 Second sentence.
 Third sentence.
 .
---wrap-sentences
 
 sentence ending with multiple punctuation
 .
@@ -114,4 +106,3 @@ What is this?! Really?!
 What is this?!
 Really?!
 .
---wrap-sentences

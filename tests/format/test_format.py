@@ -36,8 +36,8 @@ def _parse_fixture_options(lines: list[str], start: int) -> tuple[dict, int]:
             i += 1
             break
         if line.startswith("--"):
-            if line == "--wrap-sentences":
-                options["wrap_sentences"] = True
+            if line == "--no-wrap-sentences":
+                options["no_wrap_sentences"] = True
             i += 1
         else:
             # This is the next title, don't advance i
