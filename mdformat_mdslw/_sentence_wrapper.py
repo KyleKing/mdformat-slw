@@ -112,11 +112,11 @@ def get_mdslw_wrap_width(options: ContextOptions) -> int:
         options: Configuration options from mdformat context
 
     Returns:
-        Maximum line width in characters, or 0 to disable wrapping (default: 0)
+        Maximum line width in characters, or 0 to disable wrapping (default: 80)
 
     """
     wrap_width = get_conf(options, "mdslw_wrap")
-    return int(wrap_width) if wrap_width is not None else 0
+    return int(wrap_width) if wrap_width is not None else 80
 
 
 def _get_suppression_words(options: ContextOptions) -> set[str]:

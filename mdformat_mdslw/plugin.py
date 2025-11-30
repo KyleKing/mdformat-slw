@@ -43,9 +43,9 @@ def add_cli_argument_group(group: argparse._ArgumentGroup) -> None:
     group.add_argument(
         "--mdslw-wrap",
         type=int,
-        default=0,
-        help="Wrap lines at specified width (default: 0 = disabled). "
-        "Use with --wrap=keep to disable mdformat's wrapping.",
+        default=80,
+        help="Wrap lines at specified width (default: 80). "
+        "Set to 0 to disable. Use with --wrap=keep to disable mdformat's wrapping.",
     )
     group.add_argument(
         "--mdslw-lang",

@@ -30,7 +30,7 @@ def test_mdslw_wrap_width_not_set() -> None:
     """Test get_mdslw_wrap_width when --mdslw-wrap is not set."""
     options = {"mdformat": {}}
     result = get_mdslw_wrap_width(options)
-    assert result == 0
+    assert result == 80  # noqa: PLR2004  # Default is now 80 per guidance.md
 
 
 def test_mdslw_wrap_width_zero() -> None:
