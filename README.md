@@ -1,6 +1,6 @@
 # mdformat-mdslw
 
-[![Build Status][ci-badge]][ci-link] [![PyPI version][pypi-badge]][pypi-link]
+[![Build Status][ci-badge]][ci-link] [![PyPI version][pypi-badge]][pypi-link]
 
 An [mdformat](https://github.com/executablebooks/mdformat) plugin for [mdslw](https://github.com/razziel89/mdslw)-style sentence wrapping.
 
@@ -16,7 +16,7 @@ This plugin wraps markdown text by inserting line breaks after sentence-ending p
 
 ## `mdformat` Usage
 
-Add this package wherever you use `mdformat` and the plugin will be auto-recognized. Sentence wrapping is **enabled by default**. See [additional information on `mdformat` plugins here](https://mdformat.readthedocs.io/en/stable/users/plugins.html)
+Add this package wherever you use `mdformat` and the plugin will be auto-recognized. Sentence wrapping is **enabled by default**. See [additional information on `mdformat` plugins here](https://mdformat.readthedocs.io/en/stable/users/plugins.html)
 
 ### CLI
 
@@ -33,9 +33,25 @@ mdformat document.md --no-wrap-sentences
 
 #### Options
 
+**Basic Options:**
+
 - `--no-wrap-sentences`: Disable sentence wrapping (enabled by default)
 - `--mdslw-markers TEXT`: Characters that mark sentence endings (default: `.!?:`)
-- `--mdslw-wrap INTEGER`: Maximum line width for wrapping (default: 0 = disabled)
+- `--mdslw-wrap INTEGER`: Maximum line width for wrapping (default: 80)
+
+**Abbreviation Detection:**
+
+- `--mdslw-lang TEXT`: Space-separated language codes for abbreviation lists (default: `ac`)
+    - Supported: `ac` (all-caps only), `en`, `de`, `es`, `fr`, `it`
+- `--mdslw-abbreviations-mode TEXT`: Abbreviation detection mode (default: `default`)
+    - `default`: Use built-in language lists
+    - `off`: Disable abbreviation detection
+    - `extend`: Add custom abbreviations to built-in lists
+    - `override`: Replace built-in lists with custom abbreviations
+- `--mdslw-abbreviations TEXT`: Comma-separated custom abbreviations (e.g., `Dr.,Prof.,etc.`)
+- `--mdslw-suppressions TEXT`: Space-separated words to add to suppression list
+- `--mdslw-ignores TEXT`: Space-separated words to remove from suppression list
+- `--mdslw-case-sensitive`: Enable case-sensitive abbreviation matching (default: case-insensitive)
 
 > **Note:** When using `--mdslw-wrap`, consider adding `--wrap=keep` to disable mdformat's built-in line wrapping and avoid conflicts.
 
@@ -51,8 +67,14 @@ no_wrap_sentences = false
 # Customize sentence markers
 mdslw_markers = ".!?:"
 
-# Enable line width wrapping
+# Set line width wrapping (default: 80)
 mdslw_wrap = 80
+
+# Configure abbreviation detection
+lang = "en de"  # Use English and German abbreviations
+abbreviations_mode = "extend"  # Add custom to built-in lists
+abbreviations = "Dr.,Prof.,etc."  # Custom abbreviations
+case_sensitive = false  # Case-insensitive matching (default)
 
 # Recommended: disable mdformat's wrapping to avoid conflicts
 [mdformat]
@@ -120,6 +142,8 @@ result = mdformat.text(
 
 ## Example
 
+### Basic Wrapping
+
 **Input:**
 
 ```markdown
@@ -135,13 +159,35 @@ Does it work?
 Yes it does.
 ```
 
-**Output (with `--mdslw-wrap 40`):**
+### Abbreviation Detection
+
+**Input:**
 
 ```markdown
-This is a long sentence.
-It contains multiple clauses!
-Does it work?
-Yes it does.
+Dr. Smith met with Prof. Johnson at 3 p.m. They discussed the project etc. and other topics.
+```
+
+**Output (abbreviations preserved):**
+
+```markdown
+Dr. Smith met with Prof. Johnson at 3 p.m.
+They discussed the project etc. and other topics.
+```
+
+### Link Protection
+
+**Input:**
+
+```markdown
+Check [example.com](https://example.com). Use `config.json` for settings. Done!
+```
+
+**Output (links and code preserved):**
+
+```markdown
+Check [example.com](https://example.com).
+Use `config.json` for settings.
+Done!
 ```
 
 ## How It Works
@@ -155,8 +201,12 @@ When one of the limited number of characters (`.!?:` by default) which serve as 
     - Code Blocks
     - Tables
     - HTML Blocks
-1. When the wrapped term is an abbreviation (either multiple end-of-sentence markers occur (such as p.m. or e.g.) or when identified as an abbreviation (Dr. etc., or similar) (TBD on how abbreviations will be identified?)
-1. When the last word is part of a user-specified set of case-insensitive known words (either by specific language or global)
+1. When the wrapped term is an abbreviation:
+    - Multiple end-of-sentence markers occur (such as `p.m.` or `e.g.`)
+    - Identified as an abbreviation from language-specific lists (`Dr.`, `Prof.`, `etc.`, etc.)
+    - Matched against custom abbreviations specified via `--mdslw-abbreviations`
+    - Part of user-specified suppression words via `--mdslw-suppressions`
+1. Abbreviation matching is case-insensitive by default (use `--mdslw-case-sensitive` to change)
 
 ### Algorithm
 
