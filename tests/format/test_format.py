@@ -179,6 +179,7 @@ fixtures = flatten(
             "whitespace.md",
             "indentation.md",
             "inline_elements.md",
+            "tables.md",
         )
     ],
 )

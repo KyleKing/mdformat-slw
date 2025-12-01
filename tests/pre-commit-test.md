@@ -236,8 +236,18 @@ This is not wrapped. Despite having sentences. The code block protects it.
 
 | Column 1 | Column 2 | Column 3 |
 | --------------------------------- | ------------------------ | ---------------
-| This cell has sentences. Multiple | Another cell. More text! | Final cell. End |
-| Row two. More content! | Testing. Works! | Great. Done! |
+| This cell has sentences.
+Multiple | Another cell.
+More text!
+| Final cell.
+End |
+| Row two.
+More content!
+| Testing.
+Works!
+| Great.
+Done!
+|
 
 ## Custom Abbreviation Override
 
