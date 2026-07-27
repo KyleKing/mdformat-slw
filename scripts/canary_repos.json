@@ -1,4 +1,39 @@
 {
     "$comment": "Not overwritten by 'copier update' once this file exists (see canary.py's module docstring for how to add an entry, and copier.yml's '_skip_if_exists').",
-    "repos": []
+    "repos": [
+        {
+            "excludes": [
+                "docs/users/changelog.md"
+            ],
+            "name": "mdformat",
+            "patterns": [
+                "docs/**/*.md",
+                "*.md"
+            ],
+            "url": "https://github.com/hukkin/mdformat"
+        },
+        {
+            "excludes": [
+                "docs/develop/_changelog.md"
+            ],
+            "name": "myst-parser",
+            "patterns": [
+                "docs/**/*.md"
+            ],
+            "url": "https://github.com/executablebooks/MyST-Parser"
+        },
+        {
+            "excludes": [
+                "docs/changelog.md"
+            ],
+            "name": "prek",
+            "options": {
+                "number": true
+            },
+            "patterns": [
+                "docs/**/*.md"
+            ],
+            "url": "https://github.com/j178/prek"
+        }
+    ]
 }
