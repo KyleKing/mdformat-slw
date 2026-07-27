@@ -6,20 +6,23 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 
 ## Current Implementation Analysis
 
-### Text Wrapping Algorithm (mdformat_slw/_sentence_wrapper.py)
+### Text Wrapping Algorithm (mdformat_slw/\_sentence_wrapper.py)
 
 **Phase 1: Sentence Breaking**
+
 - Uses regex pattern: `([.!?])(\s*[\"'\)\]\}]*)\s+` (line 117)
 - **Requires whitespace after sentence markers** to detect boundaries
 - Only supports ASCII punctuation markers (default: `.!?`)
 - Case-insensitive abbreviation suppression (lines 542-560)
 
 **Phase 2: Long Line Wrapping**
+
 - Splits on space characters only (line 256)
 - Uses wcwidth for character width calculation (lines 37-52)
 - No language-specific line breaking rules
 
 **Character Width Handling**
+
 - Properly uses `wcwidth.wcswidth()` for CJK double-width characters (line 50)
 - Handles zero-width combining marks correctly
 - Falls back to `len(text)` for control characters
@@ -31,8 +34,9 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 ### 1. Arabic/RTL Language Issues
 
 #### 1.1 Punctuation Markers (CRITICAL)
-**Current:** Only supports ASCII punctuation (`.!?`)
-**Problem:** Arabic uses different punctuation:
+
+**Current:** Only supports ASCII punctuation (`.!?`) **Problem:** Arabic uses different punctuation:
+
 - Arabic Question Mark: `؟` (U+061F)
 - Arabic Comma: `،` (U+060C)
 - Arabic Semicolon: `؛` (U+061B)
@@ -43,8 +47,9 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 **Impact:** Arabic documents using native punctuation won't wrap at sentence boundaries.
 
 #### 1.2 No RTL/Bidi Support
-**Current:** No handling of Unicode bidirectional text
-**Problem:**
+
+**Current:** No handling of Unicode bidirectional text **Problem:**
+
 - No detection of RTL text direction
 - No handling of bidirectional override marks (LRM, RLM, etc.)
 - Mixed RTL/LTR text (e.g., Arabic with English code terms) may display incorrectly
@@ -52,8 +57,9 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 **Impact:** Text may appear correctly in the source file but render incorrectly in some viewers.
 
 #### 1.3 Missing Arabic Language Data
-**Current:** No Arabic-specific abbreviation list in `_language_data.py`
-**Problem:** Common Arabic abbreviations not recognized:
+
+**Current:** No Arabic-specific abbreviation list in `_language_data.py` **Problem:** Common Arabic abbreviations not recognized:
+
 - إلخ (etc.)
 - د. (Dr.)
 - م. (Mr.)
@@ -66,10 +72,11 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 ### 2. CJK Language Issues
 
 #### 2.1 Space Dependency (CRITICAL)
-**Current:** Sentence breaking requires `\s+` (whitespace) after markers
-**Problem:** Natural CJK text often has NO spaces between sentences
+
+**Current:** Sentence breaking requires `\s+` (whitespace) after markers **Problem:** Natural CJK text often has NO spaces between sentences
 
 **Evidence:**
+
 - `tests/format/fixtures/lang_ja.md:3-5` - Japanese without spaces **doesn't wrap**
 - `tests/format/fixtures/lang_ja.md:114-116` - Documented as "limitation"
 - `tests/format/fixtures/lang_ko.md:114-116` - Same limitation for Korean
@@ -77,42 +84,49 @@ The current implementation of mdformat-slw has significant limitations for Arabi
 **Impact:** Most natural CJK writing won't wrap at all.
 
 #### 2.2 No Kinsoku Shori (禁則処理) Support
-**Current:** No line breaking rules
-**Problem:** CJK has specific characters that cannot start/end lines:
+
+**Current:** No line breaking rules **Problem:** CJK has specific characters that cannot start/end lines:
 
 **Japanese Kinsoku Rules:**
+
 - Cannot start line: `）」』】〉》、。，．・：；？！゛゜ヽヾゝゞ々` etc.
 - Cannot end line: `（「『【〈《` etc.
 - No breaking inside: `——…‥` (multi-character punctuation)
 
 **Chinese Similar Rules:**
+
 - Cannot start: `）】｝〕〉》」』〗！％），．：；？］｀｜｝～` etc.
 - Cannot end: `（【｛〔〈《「『〖［｛￡￥` etc.
 
 **Korean Rules:**
+
 - Different rules when mixing Hangul with Hanja
 - Specific handling of Korean punctuation
 
 **Impact:** Even if wrapping works, line breaks may occur at prohibited positions.
 
 #### 2.3 No Intelligent Word Boundary Detection
-**Current:** Splits only on spaces (line 256)
-**Problem:** CJK text needs linguistic analysis to find optimal break points
+
+**Current:** Splits only on spaces (line 256) **Problem:** CJK text needs linguistic analysis to find optimal break points
 
 **Example:** Chinese sentence without spaces:
+
 ```
 今天天气很好我们去公园散步吧
 ```
+
 Optimal break points require understanding where words/phrases end.
 
 **Solutions exist:**
+
 - ICU library's line break iterator
 - Unicode Line Breaking Algorithm (UAX #14)
 - Language-specific libraries (e.g., jieba for Chinese, TinySegmenter for Japanese)
 
 #### 2.4 CJK Punctuation Not in Default Markers
-**Current:** Default markers: `.!?` (ASCII only)
-**Problem:** CJK uses different punctuation:
+
+**Current:** Default markers: `.!?` (ASCII only) **Problem:** CJK uses different punctuation:
+
 - Japanese: `。！？` (U+3002, U+FF01, U+FF1F)
 - Chinese: `。！？` (same as Japanese)
 - Korean: `。！？` (also uses same)
@@ -129,11 +143,13 @@ Optimal break points require understanding where words/phrases end.
 **Change:** Modify sentence boundary pattern to make whitespace optional
 
 **Current (line 117):**
+
 ```python
 pattern = r"([" + marker_class + r"])(\s*[\"'\)\]\}]*)\s+"
 ```
 
 **Proposed:**
+
 ```python
 pattern = r"([" + marker_class + r"])(\s*[\"'\)\]\}]*)(?:\s+|(?=[^\s]))"
 ```
@@ -147,11 +163,13 @@ pattern = r"([" + marker_class + r"])(\s*[\"'\)\]\}]*)(?:\s+|(?=[^\s]))"
 **Change:** Expand `DEFAULT_SENTENCE_MARKERS` to include CJK
 
 **Current (line 27):**
+
 ```python
 DEFAULT_SENTENCE_MARKERS = ".!?"
 ```
 
 **Proposed:**
+
 ```python
 DEFAULT_SENTENCE_MARKERS = ".!?。！？"  # Add U+3002, U+FF01, U+FF1F
 ```
@@ -165,6 +183,7 @@ DEFAULT_SENTENCE_MARKERS = ".!?。！？"  # Add U+3002, U+FF01, U+FF1F
 **Change:** Allow configuration to include Arabic markers
 
 **Proposed:**
+
 ```python
 # Could be added to default or as preset
 ARABIC_SENTENCE_MARKERS = ".!?؟"  # Include U+061F (Arabic question mark)
@@ -211,10 +230,10 @@ LANG_SUPPRESSIONS = {
     # ... existing ...
     "ar": [
         "إلخ",  # etc.
-        "د",    # Dr.
-        "م",    # Mr.
-        "ص",    # page
-        "هـ",   # Hijri year marker
+        "د",  # Dr.
+        "م",  # Mr.
+        "ص",  # page
+        "هـ",  # Hijri year marker
         # ... more common Arabic abbreviations
     ],
 }
@@ -225,14 +244,18 @@ LANG_SUPPRESSIONS = {
 **For long line wrapping**, integrate Unicode Line Breaking (UAX #14):
 
 **Option 1:** Use Python `regex` module with `\X` (grapheme cluster)
+
 ```python
 import regex
-words = regex.split(r'(?<=\s)|(?=\s)|\b', text)
+
+words = regex.split(r"(?<=\s)|(?=\s)|\b", text)
 ```
 
 **Option 2:** Use ICU library (PyICU)
+
 ```python
 from icu import BreakIterator, Locale
+
 
 def _find_line_breaks(text: str, locale: str) -> list[int]:
     bi = BreakIterator.createLineInstance(Locale(locale))
@@ -246,6 +269,7 @@ def _find_line_breaks(text: str, locale: str) -> list[int]:
 ```
 
 **Benefits:**
+
 - Proper line breaking for all Unicode scripts
 - No need to maintain language-specific rules
 - Handles kinsoku shori automatically
@@ -265,6 +289,7 @@ KINSOKU_START_JA = "）」』】〉》、。，．・：；？！"
 KINSOKU_END_JA = "（「『【〈《"
 KINSOKU_START_ZH = "）】｝〉》」』！％），．：；？］｜～"
 KINSOKU_END_ZH = "（【｛〈《「『［｛"
+
 
 def _can_break_at(text: str, pos: int, lang: str) -> bool:
     if pos <= 0 or pos >= len(text):
@@ -294,17 +319,21 @@ def _can_break_at(text: str, pos: int, lang: str) -> bool:
 **For optimal wrapping**, integrate word segmentation:
 
 **Japanese:**
+
 ```python
 # Option: TinySegmenter (pure Python, no dependencies)
 from tinysegmenter import TinySegmenter
+
 segmenter = TinySegmenter()
 words = segmenter.tokenize(text)
 ```
 
 **Chinese:**
+
 ```python
 # Option: jieba (popular, lightweight)
 import jieba
+
 words = jieba.cut(text)
 ```
 
@@ -319,6 +348,7 @@ words = jieba.cut(text)
 ```python
 import unicodedata
 
+
 def _detect_text_direction(text: str) -> str:
     """Detect if text is primarily RTL or LTR."""
     rtl_count = 0
@@ -326,12 +356,13 @@ def _detect_text_direction(text: str) -> str:
 
     for char in text:
         bidi = unicodedata.bidirectional(char)
-        if bidi in ('R', 'AL', 'RLE', 'RLO'):  # RTL types
+        if bidi in ("R", "AL", "RLE", "RLO"):  # RTL types
             rtl_count += 1
-        elif bidi in ('L', 'LRE', 'LRO'):  # LTR types
+        elif bidi in ("L", "LRE", "LRO"):  # LTR types
             ltr_count += 1
 
-    return 'rtl' if rtl_count > ltr_count else 'ltr'
+    return "rtl" if rtl_count > ltr_count else "ltr"
+
 
 def _insert_bidi_marks_if_needed(text: str) -> str:
     """Add LRM/RLM marks for mixed-direction text if needed."""
@@ -346,26 +377,27 @@ def _insert_bidi_marks_if_needed(text: str) -> str:
 ## Recommended Implementation Plan
 
 ### Phase 1: Quick Wins (Low Effort, High Impact)
-1. Add CJK punctuation to default markers (`.!?。！？`)
-2. Make space optional in sentence boundary regex
-3. Add Arabic abbreviations to language data
-4. Add language preset system with `--slw-lang` supporting `ar`, `ja`, `zh`, `ko`
 
-**Estimated Effort:** 4-8 hours
-**Files Changed:** `_sentence_wrapper.py`, `_language_data.py`, `plugin.py`
+1. Add CJK punctuation to default markers (`.!?。！？`)
+1. Make space optional in sentence boundary regex
+1. Add Arabic abbreviations to language data
+1. Add language preset system with `--slw-lang` supporting `ar`, `ja`, `zh`, `ko`
+
+**Estimated Effort:** 4-8 hours **Files Changed:** `_sentence_wrapper.py`, `_language_data.py`, `plugin.py`
 
 ### Phase 2: Enhanced Line Breaking (Medium Effort, High Impact)
-5. Integrate PyICU for proper line breaking across all languages
-6. Add basic kinsoku rules as fallback if PyICU unavailable
-7. Comprehensive test coverage for all supported languages
 
-**Estimated Effort:** 16-24 hours
-**Files Changed:** Add `_unicode_line_breaking.py`, update `_sentence_wrapper.py`, add tests
+1. Integrate PyICU for proper line breaking across all languages
+1. Add basic kinsoku rules as fallback if PyICU unavailable
+1. Comprehensive test coverage for all supported languages
+
+**Estimated Effort:** 16-24 hours **Files Changed:** Add `_unicode_line_breaking.py`, update `_sentence_wrapper.py`, add tests
 
 ### Phase 3: Advanced Features (High Effort, Medium Impact)
-8. Add CJK word segmentation (optional, behind feature flag)
-9. Add RTL/bidi detection and handling
-10. Performance optimization for large documents
+
+1. Add CJK word segmentation (optional, behind feature flag)
+1. Add RTL/bidi detection and handling
+1. Performance optimization for large documents
 
 **Estimated Effort:** 24-40 hours
 
@@ -376,25 +408,30 @@ def _insert_bidi_marks_if_needed(text: str) -> str:
 ### New Test Cases Needed
 
 1. **Arabic:**
-   - Text with Arabic punctuation (؟ ، ؛)
-   - Mixed RTL/LTR with code snippets
-   - Arabic abbreviations
 
-2. **Japanese:**
-   - Natural text without spaces between sentences
-   - Mixed hiragana/katakana/kanji
-   - Test kinsoku rules (if implemented)
+    - Text with Arabic punctuation (؟ ، ؛)
+    - Mixed RTL/LTR with code snippets
+    - Arabic abbreviations
 
-3. **Chinese:**
-   - Simplified and Traditional Chinese
-   - No spaces between sentences
-   - Test kinsoku rules
+1. **Japanese:**
 
-4. **Korean:**
-   - Hangul with no spaces
-   - Mixed Hangul/Hanja
+    - Natural text without spaces between sentences
+    - Mixed hiragana/katakana/kanji
+    - Test kinsoku rules (if implemented)
+
+1. **Chinese:**
+
+    - Simplified and Traditional Chinese
+    - No spaces between sentences
+    - Test kinsoku rules
+
+1. **Korean:**
+
+    - Hangul with no spaces
+    - Mixed Hangul/Hanja
 
 ### Test File Structure
+
 ```
 tests/format/fixtures/
   lang_ar_native_punct.md      # Arabic with ؟ ، ؛
@@ -425,6 +462,7 @@ mdformat --slw-no-space-required document.md
 ```
 
 ### TOML Configuration
+
 ```toml
 [plugin.slw]
 lang = "ja"
@@ -441,11 +479,13 @@ min_line = 40
 ### Backward Compatibility
 
 **Phase 1 changes are backward compatible:**
+
 - Adding punctuation to default markers extends functionality
 - Making space optional broadens applicability
 - Existing English/European documents unaffected
 
 **Phase 2+ may have minor impacts:**
+
 - PyICU dependency (optional, with fallback)
 - Line breaking positions may change slightly with better algorithms
 - Can be mitigated with version bump and changelog
@@ -455,16 +495,16 @@ min_line = 40
 ## Alternatives Considered
 
 ### 1. Use Python `regex` Module Instead of PyICU
-**Pros:** Lighter dependency, supports Unicode grapheme clusters
-**Cons:** Still requires manual kinsoku implementation, less comprehensive
+
+**Pros:** Lighter dependency, supports Unicode grapheme clusters **Cons:** Still requires manual kinsoku implementation, less comprehensive
 
 ### 2. Keep CJK Space Requirement
-**Pros:** No code changes
-**Cons:** Unusable for natural CJK text (primary issue)
+
+**Pros:** No code changes **Cons:** Unusable for natural CJK text (primary issue)
 
 ### 3. Separate Plugins per Language
-**Pros:** Smaller, focused codebases
-**Cons:** Poor user experience, maintenance burden
+
+**Pros:** Smaller, focused codebases **Cons:** Poor user experience, maintenance burden
 
 ---
 
@@ -480,22 +520,23 @@ min_line = 40
 
 ## Appendix: Current Language Support Matrix
 
-| Language | Abbreviations | Punctuation | Wrapping | Line Breaking | Status |
-|----------|--------------|-------------|----------|---------------|--------|
-| English  | ✅ 17         | ✅ .!?      | ✅       | ✅            | Good   |
-| German   | ✅ 54         | ✅ .!?      | ✅       | ✅            | Good   |
-| Spanish  | ✅ 36         | ✅ .!?      | ✅       | ✅            | Good   |
-| French   | ✅ 42         | ✅ .!?      | ✅       | ✅            | Good   |
-| Italian  | ✅ 40         | ✅ .!?      | ✅       | ✅            | Good   |
-| Russian  | ❌ 0          | ✅ .!?      | ✅       | ✅            | Fair   |
-| Japanese | ❌ 0          | ⚠️  .!? only | ⚠️ Spaces required | ❌ No kinsoku | **Poor** |
-| Korean   | ❌ 0          | ⚠️  .!? only | ⚠️ Spaces required | ❌            | **Poor** |
-| Chinese  | ❌ 0          | ⚠️  .!? only | ⚠️ Spaces required | ❌ No kinsoku | **Poor** |
-| Arabic   | ⚠️  Custom only | ⚠️  .!? only | ✅       | ❌ No RTL     | **Poor** |
+| Language | Abbreviations  | Punctuation | Wrapping           | Line Breaking | Status   |
+| -------- | -------------- | ----------- | ------------------ | ------------- | -------- |
+| English  | ✅ 17          | ✅ .!?      | ✅                 | ✅            | Good     |
+| German   | ✅ 54          | ✅ .!?      | ✅                 | ✅            | Good     |
+| Spanish  | ✅ 36          | ✅ .!?      | ✅                 | ✅            | Good     |
+| French   | ✅ 42          | ✅ .!?      | ✅                 | ✅            | Good     |
+| Italian  | ✅ 40          | ✅ .!?      | ✅                 | ✅            | Good     |
+| Russian  | ❌ 0           | ✅ .!?      | ✅                 | ✅            | Fair     |
+| Japanese | ❌ 0           | ⚠️ .!? only | ⚠️ Spaces required | ❌ No kinsoku | **Poor** |
+| Korean   | ❌ 0           | ⚠️ .!? only | ⚠️ Spaces required | ❌            | **Poor** |
+| Chinese  | ❌ 0           | ⚠️ .!? only | ⚠️ Spaces required | ❌ No kinsoku | **Poor** |
+| Arabic   | ⚠️ Custom only | ⚠️ .!? only | ✅                 | ❌ No RTL     | **Poor** |
 
 **Legend:**
+
 - ✅ Fully supported
-- ⚠️  Partial support / Workarounds needed
+- ⚠️ Partial support / Workarounds needed
 - ❌ Not supported
 
 ---
