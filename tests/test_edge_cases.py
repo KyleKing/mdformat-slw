@@ -47,14 +47,14 @@ def test_slw_wrap_width_number() -> None:
     """Test get_slw_wrap_width when --slw-wrap is a number."""
     options = {"mdformat": {"slw_wrap": 80}}
     result = get_slw_wrap_width(options)
-    assert result == 80  # noqa: PLR2004
+    assert result == 80  # ruff: ignore[magic-value-comparison]
 
 
 def test_slw_wrap_width_plugin_config() -> None:
     """Test get_slw_wrap_width when set via plugin config."""
     options = {"mdformat": {"plugin": {"slw": {"slw_wrap": 100}}}}
     result = get_slw_wrap_width(options)
-    assert result == 100  # noqa: PLR2004
+    assert result == 100  # ruff: ignore[magic-value-comparison]
 
 
 def test_default_sentence_markers() -> None:
@@ -96,4 +96,4 @@ def test_min_line_length_custom() -> None:
     """Test get_min_line_length with custom value."""
     options = {"mdformat": {"slw_min_line": 60}}
     result = get_min_line_length(options)
-    assert result == 60  # noqa: PLR2004
+    assert result == 60  # ruff: ignore[magic-value-comparison]

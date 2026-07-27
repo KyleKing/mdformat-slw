@@ -137,7 +137,7 @@ repos:
 ### uvx
 
 ```sh
-uvx --with mdformat-slw mdformat
+uvx --with=mdformat-slw mdformat
 ```
 
 Or with pipx:
@@ -167,25 +167,13 @@ print(result)
 # Does it work?
 
 # With line width wrapping
-result = mdformat.text(
-    text,
-    extensions={"slw"},
-    options={"slw_wrap": 88}
-)
+result = mdformat.text(text, extensions={"slw"}, options={"slw_wrap": 88})
 
 # Aggressive mode (always wrap)
-result = mdformat.text(
-    text,
-    extensions={"slw"},
-    options={"slw_min_line": 0}
-)
+result = mdformat.text(text, extensions={"slw"}, options={"slw_min_line": 0})
 
 # Disable sentence wrapping
-result = mdformat.text(
-    text,
-    extensions={"slw"},
-    options={"no_wrap_sentences": True}
-)
+result = mdformat.text(text, extensions={"slw"}, options={"no_wrap_sentences": True})
 ```
 
 ## Example
@@ -292,16 +280,19 @@ These languages work well with the default ASCII punctuation markers (`.!?`).
 - **Korean**: Same space requirement applies
 
 **Workarounds:**
+
 - Add spaces after CJK punctuation marks for wrapping to work: `文です。 次の文です。`
 - Use `--slw-markers=".!?。！？"` to include CJK punctuation marks
 - Note: Even with CJK markers configured, spaces are still required after punctuation
 
 **Example that works:**
+
 ```markdown
 これは最初の文です。 これは2番目の文です。 これは3番目の文です。
 ```
 
 **Example that doesn't wrap (no spaces):**
+
 ```markdown
 これは最初の文です。これは2番目の文です。これは3番目の文です。
 ```
@@ -319,10 +310,12 @@ See test files `tests/format/fixtures/lang_ja.md` and `tests/format/fixtures/lan
 **No abbreviation list** - Unlike European languages, there's no built-in Arabic abbreviation list (common abbreviations like إلخ, د., م., ص. are not recognized).
 
 **Workarounds:**
+
 - Use `--slw-markers=".!?؟"` to include Arabic punctuation
 - Use `--slw-abbreviations="إلخ,د,م,ص"` to add common Arabic abbreviations
 
 **Example:**
+
 ```bash
 mdformat document.md --slw-markers=".!?؟" --slw-abbreviations="إلخ,د,م"
 ```

@@ -91,7 +91,7 @@ def _validate_sentence_markers(markers: str) -> None:
     if not markers:
         msg = "sentence_markers cannot be empty"
         raise ConfigurationError(msg)
-    if len(markers) > 50:  # noqa: PLR2004
+    if len(markers) > 50:  # ruff: ignore[magic-value-comparison]
         msg = f"sentence_markers too long (max 50 chars): {len(markers)}"
         raise ConfigurationError(msg)
 
@@ -217,9 +217,7 @@ def _get_suppression_words(options: ContextOptions) -> set[str]:
         words.update(custom_words)
 
     # Always case-insensitive
-    words = {w.lower() for w in words}
-
-    return words
+    return {w.lower() for w in words}
 
 
 def _wrap_long_line(line: str, max_width: int) -> list[str]:
@@ -284,7 +282,7 @@ def _wrap_long_line(line: str, max_width: int) -> list[str]:
     return wrapped_lines
 
 
-def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # noqa: C901, PLR0912, PLR0915
+def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore[complex-structure, too-many-branches, too-many-statements]
     """Find regions where sentence wrapping should not occur.
 
     Per guidance.md: "Not in a context where auto-wrapping is possible:
@@ -331,7 +329,7 @@ def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # noqa: C901, 
     # Find links: [text](url) or [text][ref]
     # Pattern: \[...\](\(...\)|[...])
     i = 0
-    while i < len(text):  # noqa: PLR1702
+    while i < len(text):  # ruff: ignore[too-many-nested-blocks]
         if text[i] == "[":
             bracket_start = i
             i += 1
@@ -392,7 +390,7 @@ def _is_position_protected(pos: int, protected_regions: list[tuple[int, int]]) -
     return any(start <= pos < end for start, end in protected_regions)
 
 
-def _replace_spaces_in_link_text(text: str) -> str:  # noqa: C901, PLR0912
+def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-structure, too-many-branches]
     """Replace spaces in link text with non-breaking spaces.
 
     Per guidance.md: "Before line wrapping, replace all spaces in link texts
@@ -409,7 +407,7 @@ def _replace_spaces_in_link_text(text: str) -> str:  # noqa: C901, PLR0912
     result = []
     i = 0
 
-    while i < len(text):  # noqa: PLR1702
+    while i < len(text):  # ruff: ignore[too-many-nested-blocks]
         if text[i] == "[":
             # Start of potential link
             result.append(text[i])
