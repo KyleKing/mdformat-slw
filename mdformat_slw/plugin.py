@@ -37,13 +37,11 @@ def add_cli_argument_group(group: argparse._ArgumentGroup) -> None:
     group.add_argument(
         "--slw-markers",
         type=str,
-        default=".!?",
         help="Characters that mark sentence endings for slw (default: .!?)",
     )
     group.add_argument(
         "--slw-wrap",
         type=int,
-        default=88,
         help="Wrap lines at specified width (default: 88). "
         "Set to 0 to disable. Use with --wrap=keep to disable mdformat's wrapping.",
     )
@@ -51,7 +49,6 @@ def add_cli_argument_group(group: argparse._ArgumentGroup) -> None:
         "--slw-min-line",
         type=int,
         dest="slw_min_line",
-        default=40,
         help="Minimum line length before sentence wrapping (default: 40). "
         "Set to 0 to always wrap after sentences (aggressive mode).",
     )
@@ -59,7 +56,6 @@ def add_cli_argument_group(group: argparse._ArgumentGroup) -> None:
         "--slw-lang",
         type=str,
         dest="lang",
-        default="ac",
         help="Language code for abbreviation list (default: ac). "
         "Supported: ac, en, de, es, fr, it",
     )
