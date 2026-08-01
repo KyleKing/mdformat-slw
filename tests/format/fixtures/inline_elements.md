@@ -50,7 +50,7 @@ link with period in URL (line exceeds min-line)
 .
 Visit [the site](https://test.example.com/page.html). Done!
 .
-Visit [the site](https://test.example.com/page.html).
+Visit [the site](https://test.example.com/page.html).
 Done!
 .
 
@@ -58,7 +58,7 @@ link with period in URL aggressive mode
 .
 Visit [the site](https://test.example.com/page.html). Done!
 .
-Visit [the site](https://test.example.com/page.html).
+Visit [the site](https://test.example.com/page.html).
 Done!
 .
 --slw-min-line=0
@@ -67,14 +67,14 @@ reference link (under min-line, no wrap)
 .
 Check [this out][ref]. Another sentence!
 .
-Check [this out][ref]. Another sentence!
+Check [this out][ref]. Another sentence!
 .
 
 reference link aggressive mode
 .
 Check [this out][ref]. Another sentence!
 .
-Check [this out][ref].
+Check [this out][ref].
 Another sentence!
 .
 --slw-min-line=0
@@ -83,14 +83,14 @@ reference link with period in text (under min-line, no wrap)
 .
 Read [section 2.1][ref]. Important information!
 .
-Read [section 2.1][ref]. Important information!
+Read [section 2.1][ref]. Important information!
 .
 
 reference link with period in text aggressive mode
 .
 Read [section 2.1][ref]. Important information!
 .
-Read [section 2.1][ref].
+Read [section 2.1][ref].
 Important information!
 .
 --slw-min-line=0

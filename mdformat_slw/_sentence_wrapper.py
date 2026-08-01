@@ -28,6 +28,13 @@ DEFAULT_SENTENCE_MARKERS = ".!?"
 DEFAULT_MIN_LINE_LENGTH = 40
 DEFAULT_WRAP_WIDTH = 88
 
+# Stand-in for a space inside link text, so line wrapping treats the link as one
+# word. Restored to a space before the text leaves the postprocessor. A control
+# character rather than U+00A0 so that author-written non-breaking spaces are
+# still distinguishable. mdformat reserves \x00 for FILLER/WRAP_POINT and
+# `_wrap_line` uses \x01.
+UNWRAPPABLE_SPACE = "\x02"
+
 # Pattern to detect table-like text
 # Tables start with | and contain | separators
 # This detects: | cell | cell | or |cell|cell|
@@ -391,19 +398,21 @@ def _is_position_protected(pos: int, protected_regions: list[tuple[int, int]]) -
 
 
 def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-structure, too-many-branches]
-    """Replace spaces in link text with non-breaking spaces.
+    """Replace spaces in link text with an unwrappable placeholder.
 
     Per guidance.md: "Before line wrapping, replace all spaces in link texts
     by non-breaking spaces (and similar inline content that can't be wrapped)"
+
+    The placeholder is internal; call `_restore_unwrappable_spaces` before
+    returning the text to mdformat.
 
     Args:
         text: Text to process
 
     Returns:
-        Text with spaces in link text replaced by nbsp (U+00A0)
+        Text with spaces in link text replaced by `UNWRAPPABLE_SPACE`
 
     """
-    nbsp = "\u00a0"
     result = []
     i = 0
 
@@ -425,8 +434,7 @@ def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-stru
                     if depth > 0:
                         link_text_chars.append(text[i])
                 elif text[i] == " ":
-                    # Replace space with nbsp in link text
-                    link_text_chars.append(nbsp)
+                    link_text_chars.append(UNWRAPPABLE_SPACE)
                 else:
                     link_text_chars.append(text[i])
                 i += 1
@@ -459,6 +467,10 @@ def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-stru
             i += 1
 
     return "".join(result)
+
+
+def _restore_unwrappable_spaces(text: str) -> str:
+    return text.replace(UNWRAPPABLE_SPACE, " ")
 
 
 def _collapse_whitespace(text: str) -> str:
@@ -673,4 +685,5 @@ def wrap_sentences(
     protected_regions = _find_protected_regions(text)
     wrapped = _apply_sentence_breaks(text, protected_regions, config)
     wrapped = _replace_spaces_in_link_text(wrapped)
-    return _apply_line_wrapping(wrapped, config.wrap_width)
+    wrapped = _apply_line_wrapping(wrapped, config.wrap_width)
+    return _restore_unwrappable_spaces(wrapped)

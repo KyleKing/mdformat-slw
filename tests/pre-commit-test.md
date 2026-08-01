@@ -90,15 +90,15 @@ See [example.com](https://example.com) for more info.
 Another sentence here!
 Links are protected.
 
-Visit [the site](https://test.example.com/page.html) for details.
+Visit [the site](https://test.example.com/page.html) for details.
 Done!
 Link URLs with periods work fine.
 
-Check [this out][ref] for more.
+Check [this out][ref] for more.
 Another sentence!
 Reference links work too.
 
-Read [section 2.1][ref] carefully.
+Read [section 2.1][ref] carefully.
 Important information!
 Links with periods in text are handled.
 
@@ -282,7 +282,7 @@ Medium length sentence here too!
 
 ## Combining All Features
 
-Dr. Smith checked `config.json` and visited [the site](https://example.com) at 3
+Dr. Smith checked `config.json` and visited [the site](https://example.com) at 3
 p.m. yesterday.
 He found the information e.g. the system settings were correct!
 Prof. Johnson confirmed the results.
