@@ -25,8 +25,9 @@ def get_conf(options: ContextOptions, key: str) -> bool | str | int | None:
         Configuration value (bool, str, int, or None if not found)
 
     """
-    if (api := options["mdformat"].get(key)) is not None:
+    mdformat_opts = options.get("mdformat") or {}
+    if (api := mdformat_opts.get(key)) is not None:
         return api  # From API
     return (
-        options["mdformat"].get("plugin", {}).get(__plugin_name__, {}).get(key)
+        mdformat_opts.get("plugin", {}).get(__plugin_name__, {}).get(key)
     )  # from cli_or_toml
