@@ -40,6 +40,9 @@ UNWRAPPABLE_SPACE = "\x02"
 # This detects: | cell | cell | or |cell|cell|
 TABLE_LINE_PATTERN = re.compile(r"^\s*\|.*\|?\s*$")
 
+# A line of only `-` or `=` reparses as a setext heading underline
+SETEXT_UNDERLINE_PATTERN = re.compile(r"^\s*(-+|=+)\s*$")
+
 
 def _display_width(text: str) -> int:
     """Calculate display width of text in terminal columns.
@@ -345,8 +348,12 @@ def _protect_code_span_spaces(text: str) -> str:
         Text with spaces in code spans replaced by `UNWRAPPABLE_SPACE`
 
     """
+    spans = _find_code_spans(text)
+    if not spans:
+        return text
+
     chars = list(text)
-    for start, end in _find_code_spans(text):
+    for start, end in spans:
         for pos in range(start, end):
             if chars[pos] == " ":
                 chars[pos] = UNWRAPPABLE_SPACE
@@ -651,6 +658,29 @@ def _apply_sentence_breaks(
     return "".join(result_parts)
 
 
+def _merge_setext_underlines(text: str) -> str:
+    """Rejoin a wrapped line that consists only of `-` or `=` to the line above.
+
+    Inside a paragraph such a line is always an artifact of wrapping, and on the
+    next parse it turns the preceding line into a setext heading.
+
+    Args:
+        text: Wrapped text to process
+
+    Returns:
+        Text with no line made up solely of setext underline characters
+
+    """
+    lines = text.split("\n")
+    merged: list[str] = []
+    for line in lines:
+        if merged and SETEXT_UNDERLINE_PATTERN.match(line):
+            merged[-1] = f"{merged[-1]} {line.strip()}"
+        else:
+            merged.append(line)
+    return "\n".join(merged)
+
+
 def _apply_line_wrapping(text: str, wrap_width: int) -> str:
     """Wrap long lines using specified wrap width."""
     if wrap_width <= 0:
@@ -719,4 +749,5 @@ def wrap_sentences(
     wrapped = _replace_spaces_in_link_text(wrapped)
     wrapped = _protect_code_span_spaces(wrapped)
     wrapped = _apply_line_wrapping(wrapped, config.wrap_width)
+    wrapped = _merge_setext_underlines(wrapped)
     return _restore_unwrappable_spaces(wrapped)

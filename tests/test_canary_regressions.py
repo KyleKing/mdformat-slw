@@ -54,3 +54,14 @@ def test_multi_backtick_code_span_is_not_split() -> None:
     result = _format(text)
     assert "`` a ` b c ``" in result
     assert _format(result) == result
+
+
+def test_dash_fragment_does_not_become_a_setext_heading() -> None:
+    text = (
+        "This reveals another problem, which could easily be missed in a quick visual "
+        "inspection -- our new developer has also deleted the number 4!\n"
+    )
+    result = _format(text)
+    assert not any(line.strip() == "--" for line in result.split("\n"))
+    assert not result.startswith("#")
+    assert _format(result) == result
