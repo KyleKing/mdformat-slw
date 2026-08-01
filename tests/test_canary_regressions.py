@@ -34,3 +34,23 @@ def test_authored_non_breaking_space_survives() -> None:
     result = _format(text)
     assert NBSP in result
     assert _format(result) == result
+
+
+def test_code_span_is_not_split_across_lines() -> None:
+    text = (
+        "Once you have a script with dependencies declared you can run it with "
+        "`python <script>.py` and it will work exactly as expected here.\n"
+    )
+    result = _format(text)
+    assert "`python <script>.py`" in result
+    assert _format(result) == result
+
+
+def test_multi_backtick_code_span_is_not_split() -> None:
+    text = (
+        "Text with a double backtick span ``a ` b c`` that also needs to stay "
+        "together across a long enough line to wrap.\n"
+    )
+    result = _format(text)
+    assert "`` a ` b c ``" in result
+    assert _format(result) == result

@@ -289,20 +289,14 @@ def _wrap_long_line(line: str, max_width: int) -> list[str]:
     return wrapped_lines
 
 
-def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore[complex-structure, too-many-branches, too-many-statements]
-    """Find regions where sentence wrapping should not occur.
-
-    Per guidance.md: "Not in a context where auto-wrapping is possible:
-    - Inline code, links, definition lists, etc."
+def _find_code_spans(text: str) -> list[tuple[int, int]]:
+    """Find inline code spans, delimited by runs of one or more backticks.
 
     Returns:
-        List of (start, end) tuples marking protected character positions
+        List of (start, end) tuples covering the delimiters and their content
 
     """
-    protected = []
-
-    # Find inline code spans: `code`
-    # Handle both single and multiple backticks
+    spans = []
     i = 0
     while i < len(text):
         if text[i] == "`":
@@ -322,8 +316,7 @@ def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore
                         close_count += 1
                         i += 1
                     if close_count == backtick_count:
-                        # Found matching close - protect entire span
-                        protected.append((start, i))
+                        spans.append((start, i))
                         break
                 else:
                     i += 1
@@ -332,6 +325,45 @@ def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore
                 i = close_start
         else:
             i += 1
+
+    return spans
+
+
+def _protect_code_span_spaces(text: str) -> str:
+    """Replace spaces inside inline code spans with an unwrappable placeholder.
+
+    Wrapping inside a code span can leave a stray backtick at the start of a
+    line, which the next format pass escapes.
+
+    The placeholder is internal; call `_restore_unwrappable_spaces` before
+    returning the text to mdformat.
+
+    Args:
+        text: Text to process
+
+    Returns:
+        Text with spaces in code spans replaced by `UNWRAPPABLE_SPACE`
+
+    """
+    chars = list(text)
+    for start, end in _find_code_spans(text):
+        for pos in range(start, end):
+            if chars[pos] == " ":
+                chars[pos] = UNWRAPPABLE_SPACE
+    return "".join(chars)
+
+
+def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore[complex-structure, too-many-branches]
+    """Find regions where sentence wrapping should not occur.
+
+    Per guidance.md: "Not in a context where auto-wrapping is possible:
+    - Inline code, links, definition lists, etc."
+
+    Returns:
+        List of (start, end) tuples marking protected character positions
+
+    """
+    protected = _find_code_spans(text)
 
     # Find links: [text](url) or [text][ref]
     # Pattern: \[...\](\(...\)|[...])
@@ -685,5 +717,6 @@ def wrap_sentences(
     protected_regions = _find_protected_regions(text)
     wrapped = _apply_sentence_breaks(text, protected_regions, config)
     wrapped = _replace_spaces_in_link_text(wrapped)
+    wrapped = _protect_code_span_spaces(wrapped)
     wrapped = _apply_line_wrapping(wrapped, config.wrap_width)
     return _restore_unwrappable_spaces(wrapped)
