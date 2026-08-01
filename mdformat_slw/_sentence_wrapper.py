@@ -40,8 +40,20 @@ UNWRAPPABLE_SPACE = "\x02"
 # This detects: | cell | cell | or |cell|cell|
 TABLE_LINE_PATTERN = re.compile(r"^\s*\|.*\|?\s*$")
 
-# A line of only `-` or `=` reparses as a setext heading underline
-SETEXT_UNDERLINE_PATTERN = re.compile(r"^\s*(-+|=+)\s*$")
+# Line starts that reparse as block syntax: setext underline, blockquote, ATX
+# heading, thematic break, bullet, or ordered list marker
+BLOCK_MARKER_PATTERN = re.compile(
+    r"""^\ {0,3}(
+        (-+|=+)\s*$          # setext underline
+      | >                    # blockquote
+      | \#{1,6}(\s|$)        # ATX heading
+      | ([-*_])\s*(\3\s*){2,}$  # thematic break
+      | [-+*](\s|$)          # bullet
+      | \d{1,9}[.)](\s|$)    # ordered list
+    )
+    """,
+    re.VERBOSE,
+)
 
 
 def _display_width(text: str) -> int:
@@ -658,26 +670,33 @@ def _apply_sentence_breaks(
     return "".join(result_parts)
 
 
-def _merge_setext_underlines(text: str) -> str:
-    """Rejoin a wrapped line that consists only of `-` or `=` to the line above.
+def _pull_block_markers_off_line_start(text: str) -> str:
+    """Move tokens that would open a block construct back onto the line above.
 
-    Inside a paragraph such a line is always an artifact of wrapping, and on the
-    next parse it turns the preceding line into a setext heading.
+    Wrapping can put a `>`, `#`, list bullet, or run of `-` at the start of a
+    continuation line, and the next parse then reads it as a blockquote,
+    heading, list item, or setext underline instead of prose. Inside a rendered
+    paragraph such a line start is always an artifact of wrapping.
 
     Args:
         text: Wrapped text to process
 
     Returns:
-        Text with no line made up solely of setext underline characters
+        Text whose continuation lines cannot reparse as block syntax
 
     """
     lines = text.split("\n")
     merged: list[str] = []
     for line in lines:
-        if merged and SETEXT_UNDERLINE_PATTERN.match(line):
-            merged[-1] = f"{merged[-1]} {line.strip()}"
-        else:
-            merged.append(line)
+        current = line
+        while merged and BLOCK_MARKER_PATTERN.match(current):
+            head, _, tail = current.strip().partition(" ")
+            merged[-1] = f"{merged[-1]} {head}"
+            current = tail
+            if not current:
+                break
+        if current or not merged:
+            merged.append(current)
     return "\n".join(merged)
 
 
@@ -749,5 +768,5 @@ def wrap_sentences(
     wrapped = _replace_spaces_in_link_text(wrapped)
     wrapped = _protect_code_span_spaces(wrapped)
     wrapped = _apply_line_wrapping(wrapped, config.wrap_width)
-    wrapped = _merge_setext_underlines(wrapped)
+    wrapped = _pull_block_markers_off_line_start(wrapped)
     return _restore_unwrappable_spaces(wrapped)

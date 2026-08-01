@@ -65,3 +65,23 @@ def test_dash_fragment_does_not_become_a_setext_heading() -> None:
     assert not any(line.strip() == "--" for line in result.split("\n"))
     assert not result.startswith("#")
     assert _format(result) == result
+
+
+def test_shortcode_angle_bracket_does_not_open_a_blockquote() -> None:
+    text = (
+        'You can refer to the [`pyproject.toml`]({{< relref "pyproject#exclude-and-include" '
+        ">}}) documentation for more.\n"
+    )
+    result = _format(text)
+    assert not any(line.startswith(">") for line in result.split("\n"))
+    assert _format(result) == result
+
+
+def test_ordered_list_marker_does_not_start_a_wrapped_line() -> None:
+    text = (
+        "Prose that runs right up to the wrapping boundary and then keeps going "
+        "along with 1. numbered thing after.\n"
+    )
+    result = _format(text)
+    assert not any(line.startswith("1.") for line in result.split("\n"))
+    assert _format(result) == result

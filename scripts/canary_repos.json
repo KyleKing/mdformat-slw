@@ -14,6 +14,16 @@
         },
         {
             "excludes": [
+                "docs/about/release-notes.md"
+            ],
+            "name": "mkdocs",
+            "patterns": [
+                "docs/**/*.md"
+            ],
+            "url": "https://github.com/mkdocs/mkdocs"
+        },
+        {
+            "excludes": [
                 "docs/develop/_changelog.md"
             ],
             "name": "myst-parser",
@@ -21,6 +31,16 @@
                 "docs/**/*.md"
             ],
             "url": "https://github.com/executablebooks/MyST-Parser"
+        },
+        {
+            "excludes": [
+                "docs/changelog.md"
+            ],
+            "name": "pre-commit.com",
+            "patterns": [
+                "sections/*.md"
+            ],
+            "url": "https://github.com/pre-commit/pre-commit.com"
         },
         {
             "excludes": [
