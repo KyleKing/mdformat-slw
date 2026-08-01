@@ -387,17 +387,17 @@ def _insert_bidi_marks_if_needed(text: str) -> str:
 
 ### Phase 2: Enhanced Line Breaking (Medium Effort, High Impact)
 
-1. Integrate PyICU for proper line breaking across all languages
-1. Add basic kinsoku rules as fallback if PyICU unavailable
-1. Comprehensive test coverage for all supported languages
+5. Integrate PyICU for proper line breaking across all languages
+5. Add basic kinsoku rules as fallback if PyICU unavailable
+5. Comprehensive test coverage for all supported languages
 
 **Estimated Effort:** 16-24 hours **Files Changed:** Add `_unicode_line_breaking.py`, update `_sentence_wrapper.py`, add tests
 
 ### Phase 3: Advanced Features (High Effort, Medium Impact)
 
-1. Add CJK word segmentation (optional, behind feature flag)
-1. Add RTL/bidi detection and handling
-1. Performance optimization for large documents
+8. Add CJK word segmentation (optional, behind feature flag)
+8. Add RTL/bidi detection and handling
+8. Performance optimization for large documents
 
 **Estimated Effort:** 24-40 hours
 
