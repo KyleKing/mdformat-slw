@@ -269,66 +269,24 @@ mdformat-slw provides built-in abbreviation lists for:
 
 These languages work well with the default ASCII punctuation markers (`.!?`).
 
-### Current Limitations
+### Out of Scope by Design
 
-#### CJK Languages (Chinese, Japanese, Korean)
+mdformat-slw targets non-symbolic, left-to-right languages. Sentence detection relies on
+whitespace after a punctuation marker, and line wrapping relies on space-delimited word
+boundaries, neither of which holds for CJK or RTL scripts. Supporting them properly means
+Unicode line breaking (UAX #14), kinsoku shori, CJK word segmentation, and bidi handling,
+which is a different scope of project. These are not planned:
 
-**Requires spaces after sentence markers** - The current implementation requires whitespace after punctuation to detect sentence boundaries. This creates limitations for:
-
-- **Japanese**: Natural Japanese text often has no spaces between sentences (e.g., `文です。次の文です。`)
-- **Chinese**: Similar to Japanese, Chinese typically doesn't use spaces between sentences
-- **Korean**: Same space requirement applies
-
-**Workarounds:**
-
-- Add spaces after CJK punctuation marks for wrapping to work: `文です。 次の文です。`
-- Use `--slw-markers=".!?。！？"` to include CJK punctuation marks
-- Note: Even with CJK markers configured, spaces are still required after punctuation
-
-**Example that works:**
-
-```markdown
-これは最初の文です。 これは2番目の文です。 これは3番目の文です。
-```
-
-**Example that doesn't wrap (no spaces):**
-
-```markdown
-これは最初の文です。これは2番目の文です。これは3番目の文です。
-```
-
-See test files `tests/format/fixtures/lang_ja.md` and `tests/format/fixtures/lang_ko.md` for more examples.
-
-#### Arabic and RTL Languages
-
-**ASCII punctuation only** - While Arabic text will wrap if using ASCII punctuation (`.!?`), native Arabic punctuation is not in the default marker set:
-
-- Arabic Question Mark: `؟` (U+061F)
-- Arabic Comma: `،` (U+060C)
-- Arabic Semicolon: `؛` (U+061B)
-
-**No abbreviation list** - Unlike European languages, there's no built-in Arabic abbreviation list (common abbreviations like إلخ, د., م., ص. are not recognized).
-
-**Workarounds:**
-
-- Use `--slw-markers=".!?؟"` to include Arabic punctuation
-- Use `--slw-abbreviations="إلخ,د,م,ص"` to add common Arabic abbreviations
-
-**Example:**
-
-```bash
-mdformat document.md --slw-markers=".!?؟" --slw-abbreviations="إلخ,د,م"
-```
-
-#### Unicode Line Breaking
-
-The current line wrapping implementation (when `--slw-wrap` is set) uses simple space-based word boundaries. It does not implement:
-
-- **Kinsoku shori (禁則処理)**: Japanese/Chinese rules about which characters cannot start or end lines
-- **Unicode Line Breaking Algorithm (UAX #14)**: Proper line breaking for all scripts
-- **CJK word segmentation**: Intelligent breaking within CJK text that has no spaces
-
-For more details on these limitations and potential improvements, see `MULTILINGUAL_ANALYSIS.md`.
+- **CJK languages (Chinese, Japanese, Korean)**: natural text has no spaces between
+  sentences, so sentence-boundary detection won't find them. Text still passes through
+  unchanged (wcwidth accounts for double-width characters when computing line width), but
+  wrapping only kicks in if you manually space sentences, e.g.
+  `これは最初の文です。 これは2番目の文です。`, and configure CJK markers with
+  `--slw-markers=".!?。！？"`. See `tests/format/fixtures/lang_ja.md` and `lang_ko.md`.
+- **Arabic and other RTL languages**: no bidi handling, and native punctuation
+  (`؟` U+061F, `،` U+060C, `؛` U+061B) isn't in the default marker set. ASCII markers
+  (`.!?`) still work, and `--slw-markers` / `--slw-abbreviations` can add Arabic-specific
+  ones if you want partial support, but this isn't a design target.
 
 ## Acknowledgments
 
