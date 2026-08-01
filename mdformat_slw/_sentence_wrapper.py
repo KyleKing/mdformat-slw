@@ -143,7 +143,7 @@ def get_sentence_markers(options: ContextOptions) -> str:
         options: Configuration options from mdformat context
 
     Returns:
-        String of sentence ending characters (default: .!?:)
+        String of sentence ending characters (default: .!?)
 
     Raises (via _validate_sentence_markers):
         ConfigurationError: If markers are invalid
