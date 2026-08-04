@@ -109,7 +109,7 @@ They discussed the wrapping rules etc. and agreed on the defaults.
 
 ## Language Support
 
-Abbreviation lists are built in for `ac` (Author's Choice, the 77-abbreviation default covering titles, time, Latin, academic, business, and geography terms), `en` (17), `de` (54), `es` (36), `fr` (42), and `it` (40).
+Abbreviation lists are built in for `ac` (Author's Choice, the default, which covers titles, time, Latin, academic, business, and geography terms), `en`, `de`, `es`, `fr`, and `it`. The lists are in [`_language_data.py`](https://github.com/KyleKing/mdformat-slw/blob/main/mdformat_slw/_language_data.py).
 
 `mdformat-slw` targets non-symbolic, left-to-right languages. Sentence detection relies on whitespace after a marker and wrapping relies on space-delimited words, but neither are applicable CJK or RTL scripts. Doing those properly means Unicode line breaking (UAX #14), kinsoku shori, word segmentation, and bidi handling, which is a different project, so they aren't planned:
 
