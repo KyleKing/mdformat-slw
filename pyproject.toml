@@ -24,7 +24,7 @@ license-files = ["LICENSE"]
 name = "mdformat_slw"
 readme = "README.md"
 requires-python = ">=3.10.0"
-version = "0.3.0"
+version = "0.4.0"
 
 [project.entry-points."mdformat.parser_extension"]
 slw = "mdformat_slw"
@@ -45,7 +45,7 @@ homepage = "https://github.com/kyleking/mdformat-slw"
 
 [tool.commitizen]
 tag_format = "v${version}"
-version = "0.3.0"
+version = "0.4.0"
 version_files = ["mdformat_slw/__init__.py", "pyproject.toml:^version"]
 
 [tool.mypy]
