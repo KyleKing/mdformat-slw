@@ -525,7 +525,43 @@ def _restore_unwrappable_spaces(text: str) -> str:
     return text.replace(UNWRAPPABLE_SPACE, " ")
 
 
-def _collapse_matching_reference_links(text: str) -> str:  # ruff: ignore[complex-structure]
+@dataclass(frozen=True)
+class _BracketMatch:
+    """Result of scanning a `[...]` group, honoring nested brackets."""
+
+    end: int
+    matched: bool
+
+
+def _scan_bracket_group(text: str, start: int) -> _BracketMatch:
+    """Scan the `[...]` group opening at `text[start]`.
+
+    Returns the index just past the matching `]`, and whether the group
+    actually closed (`matched=False`, `end=len(text)`, if brackets were
+    still open when the text ran out).
+    """
+    i = start + 1
+    depth = 1
+    while i < len(text) and depth > 0:
+        if text[i] == "[":
+            depth += 1
+        elif text[i] == "]":
+            depth -= 1
+        i += 1
+    return _BracketMatch(end=i, matched=depth == 0)
+
+
+def _is_reference_link_id(text: str, label: str, id_open: int) -> bool:
+    """True if `text[id_open]` opens a `[id]` following a `[label]`."""
+    return (
+        id_open < len(text)
+        and text[id_open] == "["
+        and "[" not in label
+        and "]" not in label
+    )
+
+
+def _collapse_matching_reference_links(text: str) -> str:
     r"""Collapse a full reference link into shortcut form once label equals id.
 
     mdformat's own link renderer chooses `[text][id]` over `[text]` by
@@ -545,44 +581,31 @@ def _collapse_matching_reference_links(text: str) -> str:  # ruff: ignore[comple
             i += 1
             continue
 
-        label_start = i
-        i += 1
-        depth = 1
-        while i < len(text) and depth > 0:
-            if text[i] == "[":
-                depth += 1
-            elif text[i] == "]":
-                depth -= 1
-            i += 1
-
-        if depth != 0:
-            result.append(text[label_start:i])
+        link_start = i
+        label_match = _scan_bracket_group(text, i)
+        if not label_match.matched:
+            result.append(text[link_start : label_match.end])
+            i = label_match.end
             continue
 
-        label = text[label_start + 1 : i - 1]
-        if not (
-            i < len(text) and text[i] == "[" and "[" not in label and "]" not in label
-        ):
-            result.append(text[label_start:i])
+        label = text[i + 1 : label_match.end - 1]
+        id_open = label_match.end
+        if not _is_reference_link_id(text, label, id_open):
+            result.append(text[link_start:id_open])
+            i = id_open
             continue
 
-        id_start = i
-        i += 1
-        id_depth = 1
-        while i < len(text) and id_depth > 0:
-            if text[i] == "[":
-                id_depth += 1
-            elif text[i] == "]":
-                id_depth -= 1
-            i += 1
-
-        if id_depth != 0:
-            result.append(text[label_start:id_start])
-            i = id_start
+        id_match = _scan_bracket_group(text, id_open)
+        if not id_match.matched:
+            result.append(text[link_start:id_open])
+            i = id_open
             continue
 
-        ref_id = text[id_start + 1 : i - 1]
-        result.append(f"[{label}]" if label.lower() == ref_id else text[label_start:i])
+        ref_id = text[id_open + 1 : id_match.end - 1]
+        result.append(
+            f"[{label}]" if label.lower() == ref_id else text[link_start : id_match.end]
+        )
+        i = id_match.end
 
     return "".join(result)
 
