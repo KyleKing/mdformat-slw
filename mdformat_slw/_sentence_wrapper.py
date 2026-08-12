@@ -344,6 +344,19 @@ def _find_code_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+def _replace_spaces_in_spans(text: str, spans: list[tuple[int, int]]) -> str:
+    """Replace regular spaces within the given `[start, end)` spans with `UNWRAPPABLE_SPACE`."""
+    if not spans:
+        return text
+
+    chars = list(text)
+    for start, end in spans:
+        for pos in range(start, end):
+            if chars[pos] == " ":
+                chars[pos] = UNWRAPPABLE_SPACE
+    return "".join(chars)
+
+
 def _protect_code_span_spaces(text: str) -> str:
     """Replace spaces inside inline code spans with an unwrappable placeholder.
 
@@ -360,19 +373,43 @@ def _protect_code_span_spaces(text: str) -> str:
         Text with spaces in code spans replaced by `UNWRAPPABLE_SPACE`
 
     """
-    spans = _find_code_spans(text)
-    if not spans:
-        return text
-
-    chars = list(text)
-    for start, end in spans:
-        for pos in range(start, end):
-            if chars[pos] == " ":
-                chars[pos] = UNWRAPPABLE_SPACE
-    return "".join(chars)
+    return _replace_spaces_in_spans(text, _find_code_spans(text))
 
 
-def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore[complex-structure, too-many-branches]
+@dataclass(frozen=True)
+class _BracketMatch:
+    """Result of scanning a balanced delimiter group, e.g. `[...]` or `(...)`."""
+
+    end: int
+    matched: bool
+
+
+def _scan_balanced_group(
+    text: str, start: int, open_char: str, close_char: str
+) -> _BracketMatch:
+    """Scan the `open_char...close_char` group opening at `text[start]`, honoring nesting.
+
+    Returns the index just past the matching close, and whether the group
+    actually closed (`matched=False`, `end=len(text)`, if it was still open
+    when the text ran out).
+    """
+    i = start + 1
+    depth = 1
+    while i < len(text) and depth > 0:
+        if text[i] == open_char:
+            depth += 1
+        elif text[i] == close_char:
+            depth -= 1
+        i += 1
+    return _BracketMatch(end=i, matched=depth == 0)
+
+
+def _scan_bracket_group(text: str, start: int) -> _BracketMatch:
+    """Scan the `[...]` group opening at `text[start]`."""
+    return _scan_balanced_group(text, start, "[", "]")
+
+
+def _find_protected_regions(text: str) -> list[tuple[int, int]]:
     """Find regions where sentence wrapping should not occur.
 
     Per guidance.md: "Not in a context where auto-wrapping is possible:
@@ -385,51 +422,23 @@ def _find_protected_regions(text: str) -> list[tuple[int, int]]:  # ruff: ignore
     protected = _find_code_spans(text)
 
     # Find links: [text](url) or [text][ref]
-    # Pattern: \[...\](\(...\)|[...])
     i = 0
-    while i < len(text):  # ruff: ignore[too-many-nested-blocks]
-        if text[i] == "[":
-            bracket_start = i
+    while i < len(text):
+        if text[i] != "[":
             i += 1
-            # Find closing ]
-            depth = 1
-            while i < len(text) and depth > 0:
-                if text[i] == "[":
-                    depth += 1
-                elif text[i] == "]":
-                    depth -= 1
-                i += 1
+            continue
 
-            if depth == 0 and i < len(text):
-                # Found ], check for ( or [
-                if text[i] == "(":
-                    # Inline link: [text](url)
-                    i += 1
-                    depth = 1
-                    while i < len(text) and depth > 0:
-                        if text[i] == "(":
-                            depth += 1
-                        elif text[i] == ")":
-                            depth -= 1
-                        i += 1
-                    if depth == 0:
-                        # Complete link found
-                        protected.append((bracket_start, i))
-                elif text[i] == "[":
-                    # Reference link: [text][ref]
-                    i += 1
-                    depth = 1
-                    while i < len(text) and depth > 0:
-                        if text[i] == "[":
-                            depth += 1
-                        elif text[i] == "]":
-                            depth -= 1
-                        i += 1
-                    if depth == 0:
-                        # Complete reference link found
-                        protected.append((bracket_start, i))
-        else:
-            i += 1
+        bracket_start = i
+        label_match = _scan_bracket_group(text, i)
+        i = label_match.end
+        if not label_match.matched or i >= len(text) or text[i] not in {"(", "["}:
+            continue
+
+        close_char = ")" if text[i] == "(" else "]"
+        dest_match = _scan_balanced_group(text, i, text[i], close_char)
+        if dest_match.matched:
+            protected.append((bracket_start, dest_match.end))
+        i = dest_match.end
 
     return protected
 
@@ -448,7 +457,35 @@ def _is_position_protected(pos: int, protected_regions: list[tuple[int, int]]) -
     return any(start <= pos < end for start, end in protected_regions)
 
 
-def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-structure, too-many-branches]
+def _find_link_text_spans(text: str) -> list[tuple[int, int]]:
+    """Find spans of link label text and, when present, the URL/reference destination.
+
+    Unlike `_find_protected_regions`, a bracketed span is treated as link
+    text on its own, whether or not it turns out to open a real link.
+    """
+    spans = []
+    i = 0
+    while i < len(text):
+        if text[i] != "[":
+            i += 1
+            continue
+
+        label_match = _scan_bracket_group(text, i)
+        label_end = label_match.end - 1 if label_match.matched else label_match.end
+        spans.append((i + 1, label_end))
+        i = label_match.end
+        if not label_match.matched or i >= len(text) or text[i] not in {"(", "["}:
+            continue
+
+        close_char = ")" if text[i] == "(" else "]"
+        dest_match = _scan_balanced_group(text, i, text[i], close_char)
+        spans.append((i + 1, dest_match.end))
+        i = dest_match.end
+
+    return spans
+
+
+def _replace_spaces_in_link_text(text: str) -> str:
     """Replace spaces in link text with an unwrappable placeholder.
 
     Per guidance.md: "Before line wrapping, replace all spaces in link texts
@@ -464,91 +501,11 @@ def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-stru
         Text with spaces in link text replaced by `UNWRAPPABLE_SPACE`
 
     """
-    result = []
-    i = 0
-
-    while i < len(text):  # ruff: ignore[too-many-nested-blocks]
-        if text[i] == "[":
-            # Start of potential link
-            result.append(text[i])
-            i += 1
-
-            # Find closing ]
-            depth = 1
-            link_text_chars = []
-            while i < len(text) and depth > 0:
-                if text[i] == "[":
-                    depth += 1
-                    link_text_chars.append(text[i])
-                elif text[i] == "]":
-                    depth -= 1
-                    if depth > 0:
-                        link_text_chars.append(text[i])
-                elif text[i] == " ":
-                    link_text_chars.append(UNWRAPPABLE_SPACE)
-                else:
-                    link_text_chars.append(text[i])
-                i += 1
-
-            # Add link text with nbsp replacements
-            result.extend(link_text_chars)
-
-            if depth == 0:
-                # Found closing ], add it
-                result.append("]")
-
-                # Check if this is actually a link (has ( or [ following)
-                if i < len(text) and text[i] in {"(", "["}:
-                    # Copy the rest of the link (URL or reference), protecting
-                    # spaces so a reference id like [ref id] can't be split
-                    open_char = text[i]
-                    close_char = ")" if open_char == "(" else "]"
-                    result.append(text[i])
-                    i += 1
-                    depth = 1
-
-                    while i < len(text) and depth > 0:
-                        if text[i] == open_char:
-                            depth += 1
-                        elif text[i] == close_char:
-                            depth -= 1
-                        result.append(UNWRAPPABLE_SPACE if text[i] == " " else text[i])
-                        i += 1
-        else:
-            result.append(text[i])
-            i += 1
-
-    return "".join(result)
+    return _replace_spaces_in_spans(text, _find_link_text_spans(text))
 
 
 def _restore_unwrappable_spaces(text: str) -> str:
     return text.replace(UNWRAPPABLE_SPACE, " ")
-
-
-@dataclass(frozen=True)
-class _BracketMatch:
-    """Result of scanning a `[...]` group, honoring nested brackets."""
-
-    end: int
-    matched: bool
-
-
-def _scan_bracket_group(text: str, start: int) -> _BracketMatch:
-    """Scan the `[...]` group opening at `text[start]`.
-
-    Returns the index just past the matching `]`, and whether the group
-    actually closed (`matched=False`, `end=len(text)`, if brackets were
-    still open when the text ran out).
-    """
-    i = start + 1
-    depth = 1
-    while i < len(text) and depth > 0:
-        if text[i] == "[":
-            depth += 1
-        elif text[i] == "]":
-            depth -= 1
-        i += 1
-    return _BracketMatch(end=i, matched=depth == 0)
 
 
 def _is_reference_link_id(text: str, label: str, id_open: int) -> bool:
@@ -737,33 +694,24 @@ def _apply_sentence_breaks(
         marker_pos = match.start() + match.group(0).index(marker)
 
         result_parts.append(text[last_end : match.start()])
+        last_end = match.end()
 
-        if _is_position_protected(marker_pos, protected_regions):
-            result_parts.append(match.group(0))
-            last_end = match.end()
-            continue
-
-        text_before = text[: match.start()]
-        if _is_suppressed(text_before, config.suppression_words):
-            result_parts.append(match.group(0))
-            last_end = match.end()
-            continue
-
-        current_result = "".join(result_parts)
-        current_line_text = current_result[current_line_start:]
+        current_line_text = "".join(result_parts)[current_line_start:]
         line_length = (
             _display_width(current_line_text)
             + _display_width(marker)
             + _display_width(closing)
         )
-
-        if config.min_line_length > 0 and line_length < config.min_line_length:
+        skip_break = (
+            _is_position_protected(marker_pos, protected_regions)
+            or _is_suppressed(text[: match.start()], config.suppression_words)
+            or (config.min_line_length > 0 and line_length < config.min_line_length)
+        )
+        if skip_break:
             result_parts.append(match.group(0))
-            last_end = match.end()
             continue
 
         result_parts.append(f"{marker}{closing}\n")
-        last_end = match.end()
         current_line_start = len("".join(result_parts))
 
     result_parts.append(text[last_end:])
