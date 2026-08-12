@@ -88,7 +88,11 @@ import mdformat
 mdformat.text("This is a test. It has multiple sentences!", extensions={"slw"})
 # 'This is a test. It has multiple sentences!\n'
 
-mdformat.text("This is a test. It has multiple sentences!", extensions={"slw"}, options={"slw_min_line": 0})
+mdformat.text(
+    "This is a test. It has multiple sentences!",
+    extensions={"slw"},
+    options={"slw_min_line": 0},
+)
 # 'This is a test.\nIt has multiple sentences!\n'
 ```
 

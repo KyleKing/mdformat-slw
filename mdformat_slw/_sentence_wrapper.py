@@ -499,7 +499,8 @@ def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-stru
 
                 # Check if this is actually a link (has ( or [ following)
                 if i < len(text) and text[i] in {"(", "["}:
-                    # Copy the rest of the link (URL or reference) as-is
+                    # Copy the rest of the link (URL or reference), protecting
+                    # spaces so a reference id like [ref id] can't be split
                     open_char = text[i]
                     close_char = ")" if open_char == "(" else "]"
                     result.append(text[i])
@@ -511,7 +512,7 @@ def _replace_spaces_in_link_text(text: str) -> str:  # ruff: ignore[complex-stru
                             depth += 1
                         elif text[i] == close_char:
                             depth -= 1
-                        result.append(text[i])
+                        result.append(UNWRAPPABLE_SPACE if text[i] == " " else text[i])
                         i += 1
         else:
             result.append(text[i])
@@ -532,6 +533,12 @@ def _collapse_whitespace(text: str) -> str:
     - Preserve non-breaking spaces (U+00A0)
     - Preserve linebreaks preceded by non-breaking spaces
 
+    A bare newline is a soft break carried over from the source's own
+    wrapping (mdformat renders it under --wrap=keep as a literal newline).
+    It is joined into a single space so sentence-boundary wrapping decides
+    line breaks instead of the input's pre-existing ones. A hard break
+    (rendered with a preceding backslash) is left untouched.
+
     Args:
         text: Text to process
 
@@ -544,7 +551,7 @@ def _collapse_whitespace(text: str) -> str:
 
     # Replace sequences of regular spaces with single space
     # But preserve non-breaking spaces and their adjacent linebreaks
-    result = []
+    result: list[str] = []
     i = 0
     while i < len(text):
         char = text[i]
@@ -557,6 +564,14 @@ def _collapse_whitespace(text: str) -> str:
             if i < len(text) and text[i] == "\n":
                 result.append(text[i])
                 i += 1
+        elif char == "\n" and not (result and result[-1] == "\\"):
+            # Soft break: join back into flowing text, collapsing any
+            # indentation that started the next line
+            i += 1
+            while i < len(text) and text[i] in " \t":
+                i += 1
+            if result and result[-1] not in {" ", "\n"} and i < len(text):
+                result.append(" ")
         elif char in " \t":
             # Collapse consecutive regular whitespace (spaces/tabs) to single space
             result.append(" ")

@@ -53,8 +53,7 @@ trailing whitespace removed
 First sentence.
 Second sentence.
 .
-First sentence.
-Second sentence.
+First sentence. Second sentence.
 .
 
 leading whitespace on continuation
