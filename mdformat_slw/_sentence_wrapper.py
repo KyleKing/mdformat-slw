@@ -525,6 +525,68 @@ def _restore_unwrappable_spaces(text: str) -> str:
     return text.replace(UNWRAPPABLE_SPACE, " ")
 
 
+def _collapse_matching_reference_links(text: str) -> str:  # ruff: ignore[complex-structure]
+    r"""Collapse a full reference link into shortcut form once label equals id.
+
+    mdformat's own link renderer chooses `[text][id]` over `[text]` by
+    comparing the link's literal rendered text to its reference id, before
+    this postprocessor's soft-break rejoin runs. Rejoining a label that was
+    split across a pre-existing soft break (e.g. `[Jinja2\ntemplate][jinja2
+    template]`) can newly make the two sides match, so a first pass emits
+    the full form while a second pass, given the already-clean text, emits
+    the shortcut form: an idempotency break. Applying the same comparison
+    here settles on the second pass's form on the first pass too.
+    """
+    result = []
+    i = 0
+    while i < len(text):
+        if text[i] != "[":
+            result.append(text[i])
+            i += 1
+            continue
+
+        label_start = i
+        i += 1
+        depth = 1
+        while i < len(text) and depth > 0:
+            if text[i] == "[":
+                depth += 1
+            elif text[i] == "]":
+                depth -= 1
+            i += 1
+
+        if depth != 0:
+            result.append(text[label_start:i])
+            continue
+
+        label = text[label_start + 1 : i - 1]
+        if not (
+            i < len(text) and text[i] == "[" and "[" not in label and "]" not in label
+        ):
+            result.append(text[label_start:i])
+            continue
+
+        id_start = i
+        i += 1
+        id_depth = 1
+        while i < len(text) and id_depth > 0:
+            if text[i] == "[":
+                id_depth += 1
+            elif text[i] == "]":
+                id_depth -= 1
+            i += 1
+
+        if id_depth != 0:
+            result.append(text[label_start:id_start])
+            i = id_start
+            continue
+
+        ref_id = text[id_start + 1 : i - 1]
+        result.append(f"[{label}]" if label.lower() == ref_id else text[label_start:i])
+
+    return "".join(result)
+
+
 def _collapse_whitespace(text: str) -> str:
     """Collapse consecutive whitespace while preserving non-breaking spaces.
 
@@ -778,6 +840,7 @@ def wrap_sentences(
     config = _build_wrap_config(context.options)
 
     text = _collapse_whitespace(text)
+    text = _collapse_matching_reference_links(text)
     protected_regions = _find_protected_regions(text)
     wrapped = _apply_sentence_breaks(text, protected_regions, config)
     wrapped = _replace_spaces_in_link_text(wrapped)

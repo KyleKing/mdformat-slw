@@ -77,6 +77,16 @@ def test_shortcode_angle_bracket_does_not_open_a_blockquote() -> None:
     assert _format(result) == result
 
 
+def test_reference_link_split_by_soft_break_is_idempotent() -> None:
+    text = (
+        "The bare minimum required for a custom theme is a `main.html` [Jinja2\n"
+        "template][jinja2 template] file which is placed in a directory.\n\n"
+        "[jinja2 template]: https://jinja.palletsprojects.com/\n"
+    )
+    result = _format(text)
+    assert _format(result) == result
+
+
 def test_ordered_list_marker_does_not_start_a_wrapped_line() -> None:
     text = (
         "Prose that runs right up to the wrapping boundary and then keeps going "
