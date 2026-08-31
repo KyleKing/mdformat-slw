@@ -25,10 +25,16 @@ Example entry, appended to the 'repos' array in 'canary_repos.json'::
         "extensions": ["mkdocs"]
     }
 
+'options' is passed straight to 'mdformat.text', so it carries this plugin's own
+settings too, under 'plugin.slw'. That is the only way to canary a
+plugin whose behavior is off by default::
+
+    "options": {"plugin": {"slw": {"argument": true}}}
+
 'extensions' names other mdformat plugins the repo's own docs build depends on
-(e.g. 'mkdocs' for MkDocs admonitions), on top of the 'slw' this repo always
-tests. Add the matching PyPI package to the canary tox env's deps in
-pyproject.toml.
+(e.g. 'mkdocs' for MkDocs admonitions), on top of the 'slw' this
+project always tests. Add the matching PyPI package to the canary tox env's
+deps in pyproject.toml.
 """
 
 # ruff:file-ignore[print, subprocess-without-shell-equals-true, start-process-with-partial-path]
